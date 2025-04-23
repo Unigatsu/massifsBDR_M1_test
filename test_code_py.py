@@ -39,7 +39,7 @@ def load_data_from_github(github_url):
 # --- URL de tes fichiers Shapefile zippés sur GitHub ---
 # Remplacez ici par les URL réelles de vos fichiers .zip
 url_massifs = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/567dd868905ab7ffde26ef9594f804d445835945/massifs_13_mrs.zip"
-url_vegetation = "https://github.com/votre_utilisateur/votre_repo/blob/main/vegetation.zip?raw=true"
+url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/6666ff74a9c8fb10f25ec99751dc5e539303952a/veg_massifs_mrs.zip"
 
 # --- Chargement des données ---
 gdf_massifs = load_data_from_github(url_massifs)
@@ -50,8 +50,8 @@ if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
 # --- Nom de la colonne d'identification des massifs et de la colonne de liaison dans la végétation ---
-colonne_id_massif = 'id_massif'  # Remplacez par le nom réel de la colonne dans gdf_massifs
-colonne_lien_vegetation_massif = 'id_massif'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
+colonne_id_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_massifs
+colonne_lien_vegetation_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
 
 # --- Création de la carte interactive avec Folium ---
 st.subheader("Carte Interactive des Massifs")
