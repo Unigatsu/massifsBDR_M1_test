@@ -50,7 +50,7 @@ def load_data_from_github(github_url):
 # --- URL de tes fichiers Shapefile zippés sur GitHub ---
 # Remplacez ici par les URL réelles de vos fichiers .zip
 url_massifs = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/567dd868905ab7ffde26ef9594f804d445835945/massifs_13_mrs.zip?raw=true"
-url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/82fceb8451298aeb9e0f9cc4d13ac2c852a858c7/veg_massifs_mrs.zip"
+url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/ea01f9a5bfb0f307275f1405b62f45d07ace55c7/veg_massifs_mrs.zip?raw=true"
 
 # --- Chargement des données ---
 gdf_massifs = load_data_from_github(url_massifs)
