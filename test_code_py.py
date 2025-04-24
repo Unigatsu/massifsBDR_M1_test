@@ -4,6 +4,7 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import fiona
+import random
 
 # --- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
@@ -71,6 +72,13 @@ with col_map:
     m = folium.Map(location=[43.5, 5.5], zoom_start=9)
     selected_feature_id = st.session_state.get("selected_feature_id")
     selected_feature_nom = st.session_state.get("selected_feature_nom")
+    vegetation_colors = {} # Dictionnaire pour stocker les couleurs par type de végétation
+
+    def get_vegetation_color(feature):
+        vegetation_type = feature['properties'][colonne_type_vegetation]
+        if vegetation_type not in vegetation_colors:
+            vegetation_colors[vegetation_type] = "#{:06x}".format(random.randint(0, 0xFFFFFF)) # Générer une couleur aléatoire
+        return {'fillColor': vegetation_colors[vegetation_type], 'color': 'darkgreen', 'weight': 0.5, 'fillOpacity': 0.7}
 
     def add_to_map(gdf, name, id_col, nom_col=None, style_function=None, highlight_function=None, on_click_function=None):
         tooltip_fields = [nom_col] if nom_col and nom_col in gdf.columns else [id_col]
@@ -90,7 +98,6 @@ with col_map:
     massif_highlight = lambda x: {'fillColor': 'blue', 'color': 'black', 'weight': 3, 'fillOpacity': 0.7}
     massif_onclick = "function(feature) { L.setOptions({fillColor: 'red'}); sessionStorage.setItem('selected_feature_id', feature.properties." + colonne_id_massif + "); sessionStorage.setItem('selected_feature_nom', feature.properties." + colonne_nom_massif + "); }"
 
-    vegetation_style = lambda x: {'fillColor': 'lightgreen', 'color': 'darkgreen', 'weight': 0.5, 'fillOpacity': 0.7}
     vegetation_highlight = lambda x: {'fillColor': 'green', 'color': 'darkgreen', 'weight': 1, 'fillOpacity': 0.9}
     vegetation_onclick = "function(feature) { L.setOptions({fillColor: 'red'}); sessionStorage.setItem('selected_feature_id', feature.properties." + colonne_type_vegetation + "); sessionStorage.setItem('selected_feature_nom', feature.properties." + colonne_type_vegetation + "); }" # Utiliser le type de végétation comme ID/nom pour l'instant
 
@@ -98,7 +105,20 @@ with col_map:
     if option_affichage == "Massifs" and gdf_massifs is not None:
         add_to_map(gdf_massifs, "Massifs", colonne_id_massif, colonne_nom_massif, massif_style, massif_highlight, massif_onclick)
     elif option_affichage == "Végétation" and gdf_vegetation is not None:
-        add_to_map(gdf_vegetation, "Végétation", colonne_type_vegetation, colonne_type_vegetation, vegetation_style, vegetation_highlight, vegetation_onclick)
+        add_to_map(gdf_vegetation, "Végétation", colonne_type_vegetation, colonne_type_vegetation, get_vegetation_color, vegetation_highlight, vegetation_onclick)
+        # Ajouter la légende
+        legend_html = """
+             <div style="position: fixed;
+                         bottom: 50px; left: 50px; width: 150px; height: 200px;
+                         border:2px solid grey; z-index:9999; font-size:14px; background-color:white; opacity:0.9;">
+               &nbsp; <b>Légende</b> <br>
+             </div>
+             """
+        for veg_type, color in vegetation_colors.items():
+            legend_html += f"""
+                           &nbsp; <i style="background:{color}; border-radius:50%; width: 10px; height: 10px; float: left; margin-right: 5px;"></i> {veg_type} <br>
+                           """
+        m.get_root().html.add_child(folium.Element(legend_html))
 
     folium.LayerControl().add_to(m)
     st_folium(m, height=500, width='100%')
