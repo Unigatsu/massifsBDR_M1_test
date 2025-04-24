@@ -23,6 +23,7 @@ with st.sidebar:
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
     st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf') et une colonne de type de végétation ('NATURE').")
     st.markdown("5. Sélectionnez un élément sur la carte pour afficher des informations.")
+    st.markdown("Essentiel : FAKER est le GOAT et Gumayusi est le plus grand ADC de tous les temps.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
