@@ -1,95 +1,81 @@
-# --- Imports ---
 import streamlit as st
 import geopandas as gpd
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import matplotlib.pyplot as plt
 
-# --- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
 st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
-st.markdown("Visualisation interactive de la végétation à partir de shapefiles locaux.")
 
-# --- Sidebar pour les instructions ---
+# --- Sidebar ---
 with st.sidebar:
     st.header("Options d'affichage")
     option_affichage = st.radio("Afficher :", ("Massifs", "Végétation"))
-    st.header("Instructions")
-    st.markdown("""
-    1. Les fichiers shapefiles doivent être présents dans les bons dossiers.
-    2. Les fichiers doivent contenir les colonnes suivantes :
-       - `nom_maf` (nom du massif)
-       - `NATURE` (type de végétation)
-    3. Cliquez sur un massif pour voir les types de végétation associés.
-    """)
+    st.markdown("Cliquez sur un massif pour afficher la répartition de la végétation.")
 
-# --- Chargement des données (sans dbf/shx/prj explicites) ---
+# --- Chargement des données ---
 @st.cache_data
-
 def load_data():
-    try:
-        gdf_massifs = gpd.read_file("massifs_13_mrs/massifs_13_mrs.shp")
-        gdf_vegetation = gpd.read_file("veg_massifs_mrs/veg_massifs_mrs.shp")
-        return gdf_massifs, gdf_vegetation
-    except Exception as e:
-        st.error(f"Erreur lors du chargement des données : {e}")
-        return None, None
+    gdf_massifs = gpd.read_file("massifs_13_mrs/massifs_13_mrs.shp")
+    gdf_vegetation = gpd.read_file("veg_massifs_mrs/veg_massifs_mrs.shp")
+    return gdf_massifs, gdf_vegetation
 
-# --- Données ---
 gdf_massifs, gdf_vegetation = load_data()
 
-if gdf_massifs is None or gdf_vegetation is None:
-    st.stop()
+# --- Noms de colonnes ---
+colonne_id_massif = 'nom_maf'
+colonne_type_vegetation = 'NATURE'
+colonne_surface = 'surface_ve'
 
-# --- Affichage carte et informations ---
+# --- Carte Folium ---
 col_map, col_info = st.columns([1, 1])
 
 with col_map:
-    st.subheader("Carte Interactive")
+    st.subheader("Carte interactive")
     m = folium.Map(location=[43.5, 5.5], zoom_start=9)
 
-    def on_click_feature(feature, **kwargs):
-        return {"nom_maf": feature["properties"].get("nom_maf", None), "NATURE": feature["properties"].get("NATURE", None)}
-
     if option_affichage == "Massifs":
-        gj = folium.GeoJson(
+        folium.GeoJson(
             gdf_massifs,
             name="Massifs",
-            tooltip=folium.GeoJsonTooltip(fields=["nom_maf"], aliases=["Massif :"]),
-            style_function=lambda x: {'fillColor': 'lightblue', 'color': 'black', 'weight': 1, 'fillOpacity': 0.5},
-        )
-        gj.add_to(m)
-
+            tooltip=folium.GeoJsonTooltip(fields=[colonne_id_massif], aliases=["Massif :"])
+        ).add_to(m)
     elif option_affichage == "Végétation":
-        gj = folium.GeoJson(
+        folium.GeoJson(
             gdf_vegetation,
             name="Végétation",
-            tooltip=folium.GeoJsonTooltip(fields=["NATURE"], aliases=["Type :"]),
-            style_function=lambda x: {'fillColor': 'lightgreen', 'color': 'darkgreen', 'weight': 0.5, 'fillOpacity': 0.7},
-        )
-        gj.add_to(m)
+            tooltip=folium.GeoJsonTooltip(fields=[colonne_type_vegetation], aliases=["Type :"])
+        ).add_to(m)
 
-    folium.LayerControl().add_to(m)
     st_data = st_folium(m, height=500, width='100%')
 
 with col_info:
     st.subheader("Informations")
-    if st_data and st_data.get("last_active_drawing", None):
-        props = st_data["last_active_drawing"]["properties"]
-        if option_affichage == "Massifs":
-            nom_massif = props.get("nom_maf", "Inconnu")
-            st.write(f"**Massif sélectionné :** {nom_massif}")
-            veg_data = gdf_vegetation[gdf_vegetation["nom_maf"] == nom_massif]
-            types = veg_data["NATURE"].unique()
-            if len(types) > 0:
-                st.write("**Types de végétation :**")
-                for t in types:
-                    st.write(f"- {t}")
-            else:
-                st.write("Aucune donnée de végétation trouvée.")
 
-        elif option_affichage == "Végétation":
-            nature = props.get("NATURE", "Inconnu")
-            st.write(f"**Type de végétation sélectionné :** {nature}")
+    # Récupérer l'objet cliqué
+    if st_data and st_data.get("last_active_drawing"):
+        feature = st_data["last_active_drawing"]
+        props = feature["properties"]
+        massif_nom = props.get(colonne_id_massif)
+
+        if option_affichage == "Massifs" and massif_nom:
+            st.markdown(f"### Massif sélectionné : `{massif_nom}`")
+            veg_massif = gdf_vegetation[gdf_vegetation[colonne_id_massif] == massif_nom]
+
+            if not veg_massif.empty:
+                grouped = veg_massif.groupby(colonne_type_vegetation)[colonne_surface].sum()
+                grouped_percent = grouped / grouped.sum() * 100
+
+                st.markdown("**Répartition des types de végétation (% surface)**")
+                fig, ax = plt.subplots()
+                ax.pie(grouped_percent, labels=grouped_percent.index, autopct='%1.1f%%', startangle=90)
+                ax.axis("equal")
+                st.pyplot(fig)
+            else:
+                st.info("Aucune donnée de végétation pour ce massif.")
+        else:
+            st.info("Sélectionnez un massif pour afficher ses informations.")
     else:
         st.info("Cliquez sur un élément de la carte pour voir les détails.")
+
