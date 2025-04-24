@@ -65,9 +65,9 @@ if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
 # --- Nom de la colonne d'identification des massifs et de la colonne de liaison dans la végétation ---
-colonne_id_massif = 'ID_M1'  # Remplacez par le nom réel de la colonne dans gdf_massifs
-colonne_lien_vegetation_massif = 'ID_M1'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
-colonne_nom_massif = 'NOM_M1' # Nom de la colonne à afficher dans le tooltip des massifs (si elle existe)
+colonne_id_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_massifs
+colonne_lien_vegetation_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
+colonne_nom_massif = 'nom_maf' # Nom de la colonne à afficher dans le tooltip des massifs (si elle existe)
 
 # --- Création de la carte interactive avec Folium ---
 st.subheader("Carte Interactive des Massifs")
