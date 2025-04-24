@@ -47,15 +47,15 @@ def load_data_vegetation_github(shp_path, dbf_path, shx_path, prj_path):
         return None
 
 # --- Chemins des fichiers sur GitHub ---
-path_massifs_shp = "massifs_13_mrs/massifs_13_mrs_true.shp"
-path_massifs_dbf = "massifs_13_mrs/massifs_13_mrs_true.dbf"
-path_massifs_shx = "massifs_13_mrs/massifs_13_mrs_true.shx"
-path_massifs_prj = "massifs_13_mrs/massifs_13_mrs_true.prj"
+path_massifs_shp = "massifs_13_mrs/massifs_13_mrs.shp"
+path_massifs_dbf = "massifs_13_mrs/massifs_13_mrs.dbf"
+path_massifs_shx = "massifs_13_mrs/massifs_13_mrs.shx"
+path_massifs_prj = "massifs_13_mrs/massifs_13_mrs.prj"
 
-path_vegetation_shp = "veg_massifs_mrs/veg_massifs_mrs_true.shp"
-path_vegetation_dbf = "veg_massifs_mrs/veg_massifs_mrs_true.dbf"
-path_vegetation_shx = "veg_massifs_mrs/veg_massifs_mrs_true.shx"
-path_vegetation_prj = "veg_massifs_mrs/veg_massifs_mrs_true.prj"
+path_vegetation_shp = "veg_massifs_mrs/veg_massifs_mrs.shp"
+path_vegetation_dbf = "veg_massifs_mrs/veg_massifs_mrs.dbf"
+path_vegetation_shx = "veg_massifs_mrs/veg_massifs_mrs.shx"
+path_vegetation_prj = "veg_massifs_mrs/veg_massifs_mrs.prj"
 
 # --- Chargement des données ---
 gdf_massifs = load_data_massifs_github(path_massifs_shp, path_massifs_dbf, path_massifs_shx, path_massifs_prj)
