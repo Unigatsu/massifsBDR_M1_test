@@ -4,9 +4,6 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
-import io
-import zipfile
-import requests
 import fiona
 
 # --- Configuration de la page Streamlit ---
@@ -17,14 +14,13 @@ st.markdown("Visualisation interactive de la végétation à partir de données 
 # --- Sidebar pour les instructions ---
 with st.sidebar:
     st.header("Instructions")
-    st.markdown("1. Le fichier des massifs est lu directement depuis un fichier `.shp` (et ses accompagnements) dans le dépôt.")
-    st.markdown("2. Le fichier de végétation doit être zippé et contenir au minimum les fichiers `.shp`, `.dbf`, `.shx` et `.prj`.")
-    st.markdown("3. Assurez-vous que les chemins relatifs et les URL GitHub vers vos fichiers sont corrects.")
-    st.markdown("4. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
-    st.markdown("5. Le fichier de végétation doit contenir une colonne géographique (geometry) et une colonne de 'classe' liant la végétation au massif correspondant (ex: 'id_massif').")
-    st.markdown("6. Sélectionnez un massif sur la carte pour afficher le graphique de sa végétation.")
+    st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans le dépôt.")
+    st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
+    st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
+    st.markdown("4. Le fichier de végétation doit contenir une colonne géographique (geometry) et une colonne de 'classe' liant la végétation au massif correspondant (ex: 'id_massif').")
+    st.markdown("5. Sélectionnez un massif sur la carte pour afficher le graphique de sa végétation.")
 
-# --- Fonction pour charger les données des massifs depuis GitHub (fichier .shp direct) ---
+# --- Fonction pour charger les données des massifs depuis GitHub ---
 @st.cache_data
 def load_data_massifs_github(relative_path):
     try:
@@ -37,48 +33,26 @@ def load_data_massifs_github(relative_path):
         st.error(f"Erreur inattendue lors de la lecture de {relative_path}: {e}")
         return None
 
-# --- Fonction pour charger les données de végétation depuis GitHub (fichier .zip) ---
+# --- Fonction pour charger les données de végétation depuis GitHub ---
 @st.cache_data
-def load_data_vegetation_github(github_url):
+def load_data_vegetation_github(relative_path):
     try:
-        response = requests.get(github_url, stream=True)
-        response.raise_for_status()
-
-        with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
-            shp_files = [f for f in zf.namelist() if f.endswith(".shp")]
-            if not shp_files:
-                st.error(f"Aucun fichier .shp trouvé dans l'archive ZIP de {github_url}")
-                return None
-            shp_file = shp_files[0]
-
-            try:
-                with zf.open(shp_file) as shp:
-                    gdf = gpd.read_file(shp, engine='fiona')
-                return gdf
-            except fiona.errors.DriverError as e:
-                st.error(f"Erreur de pilote Fiona lors de la lecture de {github_url}: {e}")
-                return None
-            except Exception as e:
-                st.error(f"Erreur inattendue lors de la lecture du fichier Shapefile depuis {github_url}: {e}")
-                return None
-
-    except requests.exceptions.RequestException as e:
-        st.error(f"Erreur de requête HTTP vers {github_url}: {e}")
-        return None
-    except zipfile.BadZipFile as e:
-        st.error(f"Erreur lors de l'ouverture du fichier ZIP depuis {github_url}: {e}")
+        gdf = gpd.read_file(relative_path)
+        return gdf
+    except fiona.errors.DriverError as e:
+        st.error(f"Erreur de pilote Fiona lors de la lecture de {relative_path}: {e}")
         return None
     except Exception as e:
-        st.error(f"Erreur inattendue lors du traitement de {github_url}: {e}")
+        st.error(f"Erreur inattendue lors de la lecture de {relative_path}: {e}")
         return None
 
-# --- Chemins et URL des fichiers sur GitHub ---
-path_massifs = "massifs_13_mrs/massifs_13_mrs.shp"  # Assurez-vous que le fichier est dans un dossier 'data/'
-url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/d75f86c75bc06438178f45cf1d3dbff5a629868e/veg_massifs_mrs_true.zip?raw=true"
+# --- Chemins des fichiers sur GitHub ---
+path_massifs = "massifs_13_mrs/massifs_13_mrs_true.shp"  # Assurez-vous que le fichier est dans un dossier 'data/'
+path_vegetation = "veg_massifs_mrs/veg_massifs_mrs_true.shp"  # Assurez-vous que le fichier est dans un dossier 'data/'
 
 # --- Chargement des données ---
 gdf_massifs = load_data_massifs_github(path_massifs)
-gdf_vegetation = load_data_vegetation_github(url_vegetation)
+gdf_vegetation = load_data_vegetation_github(path_vegetation)
 
 # --- Vérification du chargement des données ---
 if gdf_massifs is None or gdf_vegetation is None:
