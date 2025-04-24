@@ -7,10 +7,11 @@ import matplotlib.pyplot as plt
 import io
 import zipfile
 import requests
+import fiona  # Importez fiona
 
 # --- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
-st.title("Dashboard test")
+st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
 st.markdown("Visualisation interactive de la végétation à partir de données Shapefile hébergées sur GitHub.")
 
 # --- Sidebar pour les instructions ---
@@ -22,7 +23,7 @@ with st.sidebar:
     st.markdown("4. Le fichier de végétation doit contenir une colonne géographique (geometry) et une colonne de 'classe' liant la végétation au massif correspondant (ex: 'id_massif').")
     st.markdown("5. Sélectionnez un massif sur la carte pour afficher le graphique de sa végétation.")
 
-# --- Fonction pour charger les données depuis GitHub ---
+# --- Fonction pour charger les données depuis GitHub (avec tentative fiona) ---
 @st.cache_data
 def load_data_from_github(github_url):
     try:
@@ -32,7 +33,7 @@ def load_data_from_github(github_url):
         with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
             shp_file = [f for f in zf.namelist() if f.endswith(".shp")][0]
             with zf.open(shp_file) as shp:
-                gdf = gpd.read_file(shp)
+                gdf = gpd.read_file(shp, engine='fiona')  # Spécifiez le moteur fiona
         return gdf
     except requests.exceptions.RequestException as e:
         st.error(f"Erreur de requête HTTP vers {github_url}: {e}")
@@ -43,6 +44,9 @@ def load_data_from_github(github_url):
     except IndexError:
         st.error(f"Aucun fichier .shp trouvé dans l'archive ZIP de {github_url}")
         return None
+    except fiona.errors.DriverError as e:
+        st.error(f"Erreur de pilote Fiona lors de la lecture de {github_url}: {e}")
+        return None
     except Exception as e:
         st.error(f"Erreur inattendue lors du chargement des données depuis {github_url}: {e}")
         return None
@@ -50,7 +54,7 @@ def load_data_from_github(github_url):
 # --- URL de tes fichiers Shapefile zippés sur GitHub ---
 # Remplacez ici par les URL réelles de vos fichiers .zip
 url_massifs = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/567dd868905ab7ffde26ef9594f804d445835945/massifs_13_mrs.zip?raw=true"
-url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/ea01f9a5bfb0f307275f1405b62f45d07ace55c7/veg_massifs_mrs.zip?raw=true"
+url_vegetation = "https://github.com/Unigatsu/massifsBDR_M1_test/blob/82fceb8451298aeb9e0f9cc4d13ac2c852a858c7/veg_massifs_mrs.zip?raw=true"
 
 # --- Chargement des données ---
 gdf_massifs = load_data_from_github(url_massifs)
@@ -61,9 +65,9 @@ if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
 # --- Nom de la colonne d'identification des massifs et de la colonne de liaison dans la végétation ---
-colonne_id_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_massifs
-colonne_lien_vegetation_massif = 'nom_maf'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
-colonne_nom_massif = 'nom_maf' # Nom de la colonne à afficher dans le tooltip des massifs (si elle existe)
+colonne_id_massif = 'ID_M1'  # Remplacez par le nom réel de la colonne dans gdf_massifs
+colonne_lien_vegetation_massif = 'ID_M1'  # Remplacez par le nom réel de la colonne dans gdf_vegetation
+colonne_nom_massif = 'NOM_M1' # Nom de la colonne à afficher dans le tooltip des massifs (si elle existe)
 
 # --- Création de la carte interactive avec Folium ---
 st.subheader("Carte Interactive des Massifs")
