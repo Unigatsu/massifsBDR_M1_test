@@ -54,11 +54,11 @@ if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
 # --- Noms des colonnes ---
-colonne_id_massif = 'id'
+colonne_id_massif = 'nom_maf'
 colonne_nom_massif = 'nom_maf'
 colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
-colonne_superficie_vegetation = 'surface_ve'  # Remplacez par le nom réel de la colonne de superficie
+colonne_superficie_vegetation = 'surface m'  # Remplacez par le nom réel de la colonne de superficie
 
 # --- Carte interactive des Massifs ---
 st.subheader("Carte Interactive des Massifs")
