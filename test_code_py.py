@@ -3,6 +3,7 @@ import geopandas as gpd
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import matplotlib.pyplot as plt
 import fiona
 
 # --- Configuration de la page Streamlit ---
@@ -17,7 +18,7 @@ with st.sidebar:
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
     st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf'), une colonne de type de végétation ('NATURE'), et une colonne de superficie ('surface_ve' ou 'surface m').")
-    st.markdown("5. Sélectionnez un massif sur la carte pour afficher les informations de sa végétation.")
+    st.markdown("5. Sélectionnez un massif sur la carte pour afficher un graphique de sa végétation.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
@@ -67,6 +68,7 @@ with col_map:
     st.subheader("Carte Interactive des Massifs")
     m = folium.Map(location=[43.5, 5.5], zoom_start=9)
     selected_massif_id = st.session_state.get("selected_massif_id")
+    selected_massif_nom = st.session_state.get("selected_massif_nom")
 
     def add_massifs_to_map(gdf, id_col, nom_col=None):
         tooltip_fields = [nom_col] if nom_col and nom_col in gdf.columns else [id_col]
@@ -90,7 +92,7 @@ with col_map:
     st_folium(m, height=500, width='100%')
 
 with col_info:
-    st.subheader("Informations sur la Végétation")
+    st.subheader("Répartition de la Végétation par Massif")
     selected_massif_id = st.session_state.get("selected_massif_id")
     selected_massif_nom = st.session_state.get("selected_massif_nom")
 
@@ -109,9 +111,21 @@ with col_info:
                 st.warning("Aucune colonne de superficie ('surface_ve' ou 'surface m') trouvée.")
 
             if superficie_col:
-                vegetation_info = vegetation_massif[[colonne_type_vegetation, superficie_col]].rename(columns={colonne_type_vegetation: "Type de Végétation", superficie_col: "Superficie"})
-                st.dataframe(vegetation_info)
+                # Grouper par type de végétation et sommer la superficie
+                vegetation_totals = vegetation_massif.groupby(colonne_type_vegetation)[superficie_col].sum().reset_index()
+                vegetation_totals = vegetation_totals.rename(columns={superficie_col: "Superficie Totale", colonne_type_vegetation: "Type de Végétation"})
+
+                # Créer un graphique à barres
+                fig, ax = plt.subplots(figsize=(10, 6))
+                vegetation_totals.plot(kind='bar', x="Type de Végétation", y="Superficie Totale", ax=ax)
+                ax.set_title(f"Superficie Totale par Type de Végétation\n({selected_massif_nom if selected_massif_nom else selected_massif_id})")
+                ax.set_xlabel("Type de Végétation")
+                ax.set_ylabel("Superficie Totale")
+                plt.xticks(rotation=45, ha='right')
+                plt.tight_layout()
+                st.pyplot(fig)
+
         else:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
     else:
-        st.info("Cliquez sur un massif de la carte pour afficher les informations sur la végétation.")
+        st.info("Cliquez sur un massif de la carte pour afficher un graphique de sa végétation.")
