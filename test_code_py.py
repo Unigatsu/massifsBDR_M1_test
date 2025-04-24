@@ -33,6 +33,12 @@ def load_data(shp_massifs, dbf_massifs, shx_massifs, prj_massifs, shp_vegetation
         st.error(f"Erreur inattendue lors du chargement des données: {e}")
         return None, None
 
+st.subheader("DEBUG - Vérification du chargement des données")
+st.write("gdf_massifs:")
+st.write(gdf_massifs)
+st.write("gdf_vegetation:")
+st.write(gdf_vegetation)
+
 # --- Chemins des fichiers ---
 path_massifs_shp = "massifs_13_mrs/massifs_13_mrs.shp"
 path_massifs_dbf = "massifs_13_mrs/massifs_13_mrs.dbf"
@@ -53,7 +59,7 @@ if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
 # --- Noms des colonnes ---
-colonne_id_massif = 'id'
+colonne_id_massif = 'nom_maf'
 colonne_nom_massif = 'nom_maf'
 colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
@@ -109,3 +115,6 @@ with col_info:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
     else:
         st.info("Cliquez sur un massif de la carte pour afficher les types de végétation distincts.")
+
+st.write("Noms des colonnes de gdf_massifs:", gdf_massifs.columns if gdf_massifs is not None else None)
+st.write("Noms des colonnes de gdf_vegetation:", gdf_vegetation.columns if gdf_vegetation is not None else None)
