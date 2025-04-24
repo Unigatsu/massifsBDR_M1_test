@@ -16,8 +16,8 @@ with st.sidebar:
     st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans les dossiers du dépôt.")
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
-    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf'), une colonne de type de végétation ('NATURE'), et une colonne de superficie ('surface_ve').")
-    st.markdown("5. Sélectionnez un massif sur la carte pour afficher la superficie totale de chaque type de végétation.")
+    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf') et une colonne de type de végétation ('NATURE').")
+    st.markdown("5. Sélectionnez un massif sur la carte pour afficher les types de végétation distincts.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
@@ -57,7 +57,6 @@ colonne_id_massif = 'id'
 colonne_nom_massif = 'nom_maf'
 colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
-colonne_superficie_vegetation = 'surface_ve'
 
 # --- Création de la mise en page en colonnes ---
 col_map, col_info = st.columns([1, 1])
@@ -90,22 +89,23 @@ with col_map:
     st_folium(m, height=500, width='100%')
 
 with col_info:
-    st.subheader("Superficie Totale de la Végétation par Massif")
+    st.subheader("Types de Végétation par Massif")
     selected_massif_id = st.session_state.get("selected_massif_id")
     selected_massif_nom = st.session_state.get("selected_massif_nom")
 
     if selected_massif_id:
         st.write(f"**Massif sélectionné:** {selected_massif_nom if selected_massif_nom else selected_massif_id}")
-        vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id].copy()
+        vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id]
 
         if not vegetation_massif.empty:
-            # Calculer la superficie totale par type de végétation
-            vegetation_totals = vegetation_massif.groupby(colonne_type_vegetation)[colonne_superficie_vegetation].sum().reset_index()
-            vegetation_totals = vegetation_totals.rename(columns={colonne_superficie_vegetation: "Superficie Totale", colonne_type_vegetation: "Type de Végétation"})
-
-            st.dataframe(vegetation_totals)
-
+            distinct_vegetation_types = vegetation_massif[colonne_type_vegetation].unique()
+            if len(distinct_vegetation_types) > 0:
+                st.write("**Types de végétation présents :**")
+                for veg_type in distinct_vegetation_types:
+                    st.write(f"- {veg_type}")
+            else:
+                st.write("Aucun type de végétation trouvé pour ce massif.")
         else:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
     else:
-        st.info("Cliquez sur un massif de la carte pour afficher la superficie totale de chaque type de végétation.")
+        st.info("Cliquez sur un massif de la carte pour afficher les types de végétation distincts.")
