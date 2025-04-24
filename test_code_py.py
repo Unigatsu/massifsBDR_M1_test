@@ -12,9 +12,17 @@ st.markdown("Visualisation interactive des massifs et de leur végétation.")
 
 # --- Sidebar pour les instructions ---
 with st.sidebar:
+    st.header("Options d'affichage")
+    option_affichage = st.radio(
+        "Afficher :",
+        ("Massifs", "Végétation")
+    )
     st.header("Instructions")
-    st.markdown("1. Les fichiers des massifs et de la végétation sont lus depuis les fichiers `.shp`.")
-    st.markdown("2. Cliquez sur un massif pour afficher ses informations.")
+    st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans les dossiers du dépôt.")
+    st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
+    st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique ('id').")
+    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf') et une colonne de type de végétation ('NATURE').")
+    st.markdown("5. Sélectionnez un élément sur la carte pour afficher des informations.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
@@ -56,11 +64,11 @@ colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
 colonne_superficie_massif = 'SURFACE_HA'
 
-# --- Création de la mise en page en colonnes ---
+# --- Création de la carte interactive avec Folium ---
 col_map, col_info = st.columns([1, 1])
 
 with col_map:
-    st.subheader("Carte Interactive des Massifs")
+    st.subheader("Carte Interactive")
     m = folium.Map(location=[43.5, 5.5], zoom_start=9)
     selected_massif_id = st.session_state.get("selected_massif_id")
 
@@ -76,32 +84,56 @@ with col_map:
             on_click="function(feature) { L.setOptions({fillColor: 'red'}); sessionStorage.setItem('selected_massif_id', feature.properties." + id_col + "); }"
         ).add_to(m)
 
-    if gdf_massifs is not None:
+    def add_vegetation_to_map(gdf, type_col):
+        tooltip = folium.GeoJsonTooltip(fields=[type_col], aliases=['Type de Végétation:'])
+        folium.GeoJson(
+            gdf,
+            name="Végétation",
+            style_function=lambda x: {'fillColor': 'lightgreen', 'color': 'darkgreen', 'weight': 0.5, 'fillOpacity': 0.7},
+            tooltip=tooltip,
+            highlight_function=lambda x: {'fillColor': 'green', 'color': 'darkgreen', 'weight': 1, 'fillOpacity': 0.9},
+            # Pas d'action spécifique au clic sur la végétation pour l'instant
+        ).add_to(m)
+
+    if option_affichage == "Massifs" and gdf_massifs is not None:
         add_massifs_to_map(gdf_massifs, colonne_id_massif, colonne_nom_massif, colonne_superficie_massif)
+    elif option_affichage == "Végétation" and gdf_vegetation is not None:
+        add_vegetation_to_map(gdf_vegetation, colonne_type_vegetation)
 
     folium.LayerControl().add_to(m)
     st_folium(m, height=500, width='100%')
 
 with col_info:
-    st.subheader("Informations du Massif Sélectionné")
-    selected_massif_id = st.session_state.get("selected_massif_id")
+    st.subheader("Informations")
+    if option_affichage == "Massifs":
+        selected_massif_id = st.session_state.get("selected_massif_id")
+        if selected_massif_id:
+            massif_info = gdf_massifs[gdf_massifs[colonne_id_massif] == selected_massif_id].iloc[0]
+            st.write(f"**ID Massif:** {massif_info[colonne_id_massif]}")
+            st.write(f"**Nom Massif:** {massif_info[colonne_nom_massif]}")
+            st.write(f"**Superficie Totale (ha):** {massif_info[colonne_superficie_massif]}")
 
-    if selected_massif_id:
-        massif_info = gdf_massifs[gdf_massifs[colonne_id_massif] == selected_massif_id].iloc[0]
-        st.write(f"**ID:** {massif_info[colonne_id_massif]}")
-        st.write(f"**Nom:** {massif_info[colonne_nom_massif]}")
-        st.write(f"**Superficie Totale (ha):** {massif_info[colonne_superficie_massif]}")
-
-        vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id]
-        if not vegetation_massif.empty:
-            distinct_vegetation_types = vegetation_massif[colonne_type_vegetation].unique()
-            if len(distinct_vegetation_types) > 0:
-                st.write("**Types de végétation présents :**")
-                for veg_type in distinct_vegetation_types:
-                    st.write(f"- {veg_type}")
+            vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id]
+            if not vegetation_massif.empty:
+                distinct_vegetation_types = vegetation_massif[colonne_type_vegetation].unique()
+                if len(distinct_vegetation_types) > 0:
+                    st.write("**Types de végétation présents :**")
+                    for veg_type in distinct_vegetation_types:
+                        st.write(f"- {veg_type}")
+                else:
+                    st.write("Aucun type de végétation trouvé pour ce massif.")
             else:
-                st.write("Aucun type de végétation trouvé pour ce massif.")
+                st.info("Aucune donnée de végétation trouvée pour ce massif.")
         else:
-            st.info("Aucune donnée de végétation trouvée pour ce massif.")
-    else:
-        st.info("Cliquez sur un massif de la carte pour afficher ses informations.")
+            st.info("Cliquez sur un massif de la carte pour afficher ses informations.")
+    elif option_affichage == "Végétation":
+        st.info("Sélectionnez un massif sur la carte (en mode 'Massifs') pour afficher les informations de végétation.")
+
+st.write("Noms des colonnes de gdf_massifs:", gdf_massifs.columns if gdf_massifs is not None else None)
+st.write("Noms des colonnes de gdf_vegetation:", gdf_vegetation.columns if gdf_vegetation is not None else None)
+
+st.subheader("DEBUG - Vérification du chargement des données")
+st.write("gdf_massifs:")
+st.write(gdf_massifs.head() if gdf_massifs is not None else None)
+st.write("gdf_vegetation:")
+st.write(gdf_vegetation.head() if gdf_vegetation is not None else None)
