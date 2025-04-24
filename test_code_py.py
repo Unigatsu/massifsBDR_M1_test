@@ -17,7 +17,7 @@ with st.sidebar:
     st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans les dossiers du dépôt.")
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
-    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf'), une colonne de type de végétation ('NATURE'), et une colonne de superficie ('surface_ve' ou 'surface m').")
+    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf'), une colonne de type de végétation ('NATURE'), et une colonne de superficie ('surface_ve').")
     st.markdown("5. Sélectionnez un massif sur la carte pour afficher un graphique de sa végétation.")
 
 # --- Fonction pour charger les données ---
@@ -58,8 +58,7 @@ colonne_id_massif = 'id'
 colonne_nom_massif = 'nom_maf'
 colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
-colonne_superficie_vegetation1 = 'surface_ve'
-colonne_superficie_vegetation2 = 'surface m'
+colonne_superficie_vegetation = 'surface_ve'
 
 # --- Création de la mise en page en colonnes ---
 col_map, col_info = st.columns([1, 1])
@@ -101,29 +100,19 @@ with col_info:
         vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id].copy()
 
         if not vegetation_massif.empty:
-            # Sélectionner la colonne de superficie existante
-            if colonne_superficie_vegetation1 in vegetation_massif.columns:
-                superficie_col = colonne_superficie_vegetation1
-            elif colonne_superficie_vegetation2 in vegetation_massif.columns:
-                superficie_col = colonne_superficie_vegetation2
-            else:
-                superficie_col = None
-                st.warning("Aucune colonne de superficie ('surface_ve' ou 'surface m') trouvée.")
+            # Grouper par type de végétation et sommer la superficie
+            vegetation_totals = vegetation_massif.groupby(colonne_type_vegetation)[colonne_superficie_vegetation].sum().reset_index()
+            vegetation_totals = vegetation_totals.rename(columns={colonne_superficie_vegetation: "Superficie Totale", colonne_type_vegetation: "Type de Végétation"})
 
-            if superficie_col:
-                # Grouper par type de végétation et sommer la superficie
-                vegetation_totals = vegetation_massif.groupby(colonne_type_vegetation)[superficie_col].sum().reset_index()
-                vegetation_totals = vegetation_totals.rename(columns={superficie_col: "Superficie Totale", colonne_type_vegetation: "Type de Végétation"})
-
-                # Créer un graphique à barres
-                fig, ax = plt.subplots(figsize=(10, 6))
-                vegetation_totals.plot(kind='bar', x="Type de Végétation", y="Superficie Totale", ax=ax)
-                ax.set_title(f"Superficie Totale par Type de Végétation\n({selected_massif_nom if selected_massif_nom else selected_massif_id})")
-                ax.set_xlabel("Type de Végétation")
-                ax.set_ylabel("Superficie Totale")
-                plt.xticks(rotation=45, ha='right')
-                plt.tight_layout()
-                st.pyplot(fig)
+            # Créer un graphique à barres
+            fig, ax = plt.subplots(figsize=(10, 6))
+            vegetation_totals.plot(kind='bar', x="Type de Végétation", y="Superficie Totale", ax=ax)
+            ax.set_title(f"Superficie Totale par Type de Végétation\n({selected_massif_nom if selected_massif_nom else selected_massif_id})")
+            ax.set_xlabel("Type de Végétation")
+            ax.set_ylabel("Superficie Totale")
+            plt.xticks(rotation=45, ha='right')
+            plt.tight_layout()
+            st.pyplot(fig)
 
         else:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
