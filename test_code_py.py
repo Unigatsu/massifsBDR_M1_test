@@ -33,11 +33,6 @@ def load_data(shp_massifs, dbf_massifs, shx_massifs, prj_massifs, shp_vegetation
         st.error(f"Erreur inattendue lors du chargement des données: {e}")
         return None, None
 
-st.subheader("DEBUG - Vérification du chargement des données")
-st.write("gdf_massifs:")
-st.write(gdf_massifs)
-st.write("gdf_vegetation:")
-st.write(gdf_vegetation)
 
 # --- Chemins des fichiers ---
 path_massifs_shp = "massifs_13_mrs/massifs_13_mrs.shp"
@@ -53,6 +48,12 @@ path_vegetation_prj = "veg_massifs_mrs/veg_massifs_mrs.prj"
 # --- Chargement des données ---
 gdf_massifs, gdf_vegetation = load_data(path_massifs_shp, path_massifs_dbf, path_massifs_shx, path_massifs_prj,
                                        path_vegetation_shp, path_vegetation_dbf, path_vegetation_shx, path_vegetation_prj)
+
+st.subheader("DEBUG - Vérification du chargement des données")
+st.write("gdf_massifs:")
+st.write(gdf_massifs)
+st.write("gdf_vegetation:")
+st.write(gdf_vegetation)
 
 # --- Vérification du chargement des données ---
 if gdf_massifs is None or gdf_vegetation is None:
