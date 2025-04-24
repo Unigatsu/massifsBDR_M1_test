@@ -18,7 +18,7 @@ with st.sidebar:
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
     st.markdown("4. Le fichier de végétation doit contenir une colonne géographique (geometry), une colonne liant la végétation au massif ('nom_maf') et une colonne de superficie (ex: 'SUPERFICIE') et une colonne de type de végétation ('NATURE').")
-    st.markdown("5. Sélectionnez un massif sur la carte pour afficher les informations de sa végétation.")
+    st.markdown("5. Sélectionnez un massif sur la carte pour afficher le graphique de sa végétation.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
@@ -60,72 +60,54 @@ colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
 colonne_superficie_vegetation = 'surface_ve'  # Remplacez par le nom réel de la colonne de superficie
 
-# --- Création de la carte interactive avec Folium ---
-col_map, col_info = st.columns([1, 1])
+# --- Carte interactive des Massifs ---
+st.subheader("Carte Interactive des Massifs")
+m = folium.Map(location=[43.5, 5.5], zoom_start=9)
+selected_massif_id = st.session_state.get("selected_massif_id")
+selected_massif_nom = st.session_state.get("selected_massif_nom")
 
-with col_map:
-    st.subheader("Carte Interactive des Massifs")
-    m = folium.Map(location=[43.5, 5.5], zoom_start=9)
-    selected_massif_id = st.session_state.get("selected_massif_id")
+def add_massifs_to_map(gdf, id_col, nom_col=None):
+    tooltip_fields = [nom_col] if nom_col and nom_col in gdf.columns else [id_col]
+    tooltip_aliases = ['Massif:'] if nom_col and nom_col in gdf.columns else ['ID:']
+    tooltip = folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases)
 
-    def add_massifs_to_map(gdf, id_col, nom_col=None):
-        tooltip_fields = [nom_col] if nom_col and nom_col in gdf.columns else [id_col]
-        tooltip_aliases = ['Massif:'] if nom_col and nom_col in gdf.columns else ['ID:']
-        tooltip = folium.GeoJsonTooltip(fields=tooltip_fields, aliases=tooltip_aliases)
+    folium.GeoJson(
+        gdf,
+        name="Massifs",
+        style_function=lambda x: {'fillColor': 'lightblue', 'color': 'black', 'weight': 1, 'fillOpacity': 0.5},
+        tooltip=tooltip,
+        highlight_function=lambda x: {'fillColor': 'blue', 'color': 'black', 'weight': 3, 'fillOpacity': 0.7},
+        # Ajouter un gestionnaire d'événements de clic pour stocker l'ID et le nom du massif sélectionné
+        on_click="function(feature) { L.setOptions({fillColor: 'red'}); sessionStorage.setItem('selected_massif_id', feature.properties." + id_col + "); sessionStorage.setItem('selected_massif_nom', feature.properties." + (nom_col if nom_col and nom_col in gdf.columns else id_col) + "); }"
+    ).add_to(m)
 
-        folium.GeoJson(
-            gdf,
-            name="Massifs",
-            style_function=lambda x: {'fillColor': 'lightblue', 'color': 'black', 'weight': 1, 'fillOpacity': 0.5},
-            tooltip=tooltip,
-            highlight_function=lambda x: {'fillColor': 'blue', 'color': 'black', 'weight': 3, 'fillOpacity': 0.7},
-            # Ajouter un gestionnaire d'événements de clic pour stocker l'ID du massif sélectionné
-            on_click="function(feature) { L.setOptions({fillColor: 'red'}); sessionStorage.setItem('selected_massif_id', feature.properties." + id_col + "); sessionStorage.setItem('selected_massif_nom', feature.properties." + (nom_col if nom_col and nom_col in gdf.columns else id_col) + "); }"
-        ).add_to(m)
+if gdf_massifs is not None:
+    add_massifs_to_map(gdf_massifs, colonne_id_massif, colonne_nom_massif)
 
-    if gdf_massifs is not None:
-        add_massifs_to_map(gdf_massifs, colonne_id_massif, colonne_nom_massif)
+folium.LayerControl().add_to(m)
+st_folium(m, height=500, width='100%')
 
-    folium.LayerControl().add_to(m)
-    st_folium(m, height=500, width='100%')
+# --- Graphique de la Végétation par Massif ---
+st.subheader("Superficie Totale de la Végétation par Massif")
 
-# --- Affichage des informations de végétation ---
-with col_info:
-    st.subheader("Informations de la Végétation par Massif")
-    selected_massif_id = st.session_state.get("selected_massif_id")
+if selected_massif_id:
+    massif_data = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id].copy()
 
-    if selected_massif_id:
-        massif_data = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id].copy()
+    if not massif_data.empty:
+        # Calculer la superficie totale par type de végétation
+        vegetation_totals = massif_data.groupby(colonne_type_vegetation)[colonne_superficie_vegetation].sum().reset_index()
+        vegetation_totals = vegetation_totals.rename(columns={colonne_superficie_vegetation: 'Superficie Totale'})
 
-        if not massif_data.empty:
-            # Calculer la superficie totale par type de végétation
-            vegetation_totals = massif_data.groupby(colonne_type_vegetation)[colonne_superficie_vegetation].sum().reset_index()
-            vegetation_totals = vegetation_totals.rename(columns={colonne_superficie_vegetation: 'Superficie Totale'})
-
-            # Calculer la superficie totale du massif
-            total_superficie_massif = vegetation_totals['Superficie Totale'].sum()
-
-            if total_superficie_massif > 0:
-                # Calculer le pourcentage de chaque type de végétation
-                vegetation_totals['Pourcentage'] = (vegetation_totals['Superficie Totale'] / total_superficie_massif) * 100
-                vegetation_totals['Pourcentage'] = vegetation_totals['Pourcentage'].round(2).astype(str) + '%'
-
-                st.subheader(f"Répartition de la Végétation pour le Massif : {selected_massif_id}")
-                st.dataframe(vegetation_totals)
-
-                # Créer un graphique à barres
-                fig, ax = plt.subplots(figsize=(10, 6))
-                vegetation_totals.plot(kind='bar', x=colonne_type_vegetation, y='Superficie Totale', ax=ax)
-                ax.set_title(f"Superficie Totale par Type de Végétation ({selected_massif_id})")
-                ax.set_xlabel("Type de Végétation")
-                ax.set_ylabel("Superficie Totale")
-                plt.xticks(rotation=45, ha='right')
-                plt.tight_layout()
-                st.pyplot(fig)
-            else:
-                st.warning(f"Aucune information de superficie disponible pour le massif sélectionné.")
-
-        else:
-            st.info(f"Aucune donnée de végétation trouvée pour le massif : {selected_massif_id}")
+        # Créer un graphique à barres
+        fig, ax = plt.subplots(figsize=(10, 6))
+        vegetation_totals.plot(kind='bar', x=colonne_type_vegetation, y='Superficie Totale', ax=ax)
+        ax.set_title(f"Superficie Totale par Type de Végétation ({selected_massif_nom if selected_massif_nom else selected_massif_id})")
+        ax.set_xlabel("Type de Végétation")
+        ax.set_ylabel("Superficie Totale")
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        st.pyplot(fig)
     else:
-        st.info("Cliquez sur un massif de la carte pour afficher les informations de sa végétation.")
+        st.info(f"Aucune donnée de végétation trouvée pour le massif sélectionné.")
+else:
+    st.info("Cliquez sur un massif de la carte pour afficher le graphique de sa végétation.")
