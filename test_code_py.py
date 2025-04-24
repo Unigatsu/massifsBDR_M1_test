@@ -16,8 +16,8 @@ with st.sidebar:
     st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans les dossiers du dépôt.")
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
-    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf') et une colonne de type de végétation ('NATURE').")
-    st.markdown("5. Sélectionnez un massif sur la carte pour afficher les types de végétation.")
+    st.markdown("4. Le fichier de végétation doit contenir une colonne liant la végétation au massif ('nom_maf'), une colonne de type de végétation ('NATURE'), et une colonne de superficie ('surface_ve' ou 'surface m').")
+    st.markdown("5. Sélectionnez un massif sur la carte pour afficher les informations de sa végétation.")
 
 # --- Fonction pour charger les données ---
 @st.cache_data
@@ -57,6 +57,8 @@ colonne_id_massif = 'id'
 colonne_nom_massif = 'nom_maf'
 colonne_lien_vegetation_massif = 'nom_maf'
 colonne_type_vegetation = 'NATURE'
+colonne_superficie_vegetation1 = 'surface_ve'
+colonne_superficie_vegetation2 = 'surface m'
 
 # --- Création de la mise en page en colonnes ---
 col_map, col_info = st.columns([1, 1])
@@ -94,16 +96,21 @@ with col_info:
 
     if selected_massif_id:
         st.write(f"**Massif sélectionné:** {selected_massif_nom if selected_massif_nom else selected_massif_id}")
-        vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id]
+        vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id].copy()
 
         if not vegetation_massif.empty:
-            types_vegetation = vegetation_massif[colonne_type_vegetation].unique()
-            if len(types_vegetation) > 0:
-                st.write("**Types de végétation présents :**")
-                for type_veg in types_vegetation:
-                    st.write(f"- {type_veg}")
+            # Sélectionner la colonne de superficie existante
+            if colonne_superficie_vegetation1 in vegetation_massif.columns:
+                superficie_col = colonne_superficie_vegetation1
+            elif colonne_superficie_vegetation2 in vegetation_massif.columns:
+                superficie_col = colonne_superficie_vegetation2
             else:
-                st.write("Aucun type de végétation trouvé pour ce massif.")
+                superficie_col = None
+                st.warning("Aucune colonne de superficie ('surface_ve' ou 'surface m') trouvée.")
+
+            if superficie_col:
+                vegetation_info = vegetation_massif[[colonne_type_vegetation, superficie_col]].rename(columns={colonne_type_vegetation: "Type de Végétation", superficie_col: "Superficie"})
+                st.dataframe(vegetation_info)
         else:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
     else:
