@@ -14,7 +14,7 @@ st.markdown("Visualisation interactive de la végétation à partir de données 
 # --- Sidebar pour les instructions ---
 with st.sidebar:
     st.header("Instructions")
-    st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans le dépôt.")
+    st.markdown("1. Les fichiers des massifs et de la végétation sont lus directement depuis les fichiers `.shp` (et leurs accompagnements) dans les dossiers du dépôt.")
     st.markdown("2. Assurez-vous que les chemins relatifs vers vos fichiers sont corrects.")
     st.markdown("3. Le fichier des massifs doit contenir une colonne d'identification unique (ex: 'id_massif', 'nom_massif').")
     st.markdown("4. Le fichier de végétation doit contenir une colonne géographique (geometry) et une colonne de 'classe' liant la végétation au massif correspondant (ex: 'id_massif').")
@@ -22,37 +22,44 @@ with st.sidebar:
 
 # --- Fonction pour charger les données des massifs depuis GitHub ---
 @st.cache_data
-def load_data_massifs_github(relative_path):
+def load_data_massifs_github(shp_path, dbf_path, shx_path, prj_path):
     try:
-        gdf = gpd.read_file(relative_path)
+        gdf = gpd.read_file(shp_path, dbf=dbf_path, shx=shx_path, prj=prj_path)
         return gdf
     except fiona.errors.DriverError as e:
-        st.error(f"Erreur de pilote Fiona lors de la lecture de {relative_path}: {e}")
+        st.error(f"Erreur de pilote Fiona lors de la lecture de {shp_path}: {e}")
         return None
     except Exception as e:
-        st.error(f"Erreur inattendue lors de la lecture de {relative_path}: {e}")
+        st.error(f"Erreur inattendue lors de la lecture de {shp_path}: {e}")
         return None
 
 # --- Fonction pour charger les données de végétation depuis GitHub ---
 @st.cache_data
-def load_data_vegetation_github(relative_path):
+def load_data_vegetation_github(shp_path, dbf_path, shx_path, prj_path):
     try:
-        gdf = gpd.read_file(relative_path)
+        gdf = gpd.read_file(shp_path, dbf=dbf_path, shx=shx_path, prj=prj_path)
         return gdf
     except fiona.errors.DriverError as e:
-        st.error(f"Erreur de pilote Fiona lors de la lecture de {relative_path}: {e}")
+        st.error(f"Erreur de pilote Fiona lors de la lecture de {shp_path}: {e}")
         return None
     except Exception as e:
-        st.error(f"Erreur inattendue lors de la lecture de {relative_path}: {e}")
+        st.error(f"Erreur inattendue lors de la lecture de {shp_path}: {e}")
         return None
 
 # --- Chemins des fichiers sur GitHub ---
-path_massifs = "massifs_13_mrs/massifs_13_mrs_true.shp"  # Assurez-vous que le fichier est dans un dossier 'data/'
-path_vegetation = "veg_massifs_mrs/veg_massifs_mrs_true.shp"  # Assurez-vous que le fichier est dans un dossier 'data/'
+path_massifs_shp = "massifs_13_mrs/massifs_13_mrs_true.shp"
+path_massifs_dbf = "massifs_13_mrs/massifs_13_mrs_true.dbf"
+path_massifs_shx = "massifs_13_mrs/massifs_13_mrs_true.shx"
+path_massifs_prj = "massifs_13_mrs/massifs_13_mrs_true.prj"
+
+path_vegetation_shp = "veg_massifs_mrs/veg_massifs_mrs_true.shp"
+path_vegetation_dbf = "veg_massifs_mrs/veg_massifs_mrs_true.dbf"
+path_vegetation_shx = "veg_massifs_mrs/veg_massifs_mrs_true.shx"
+path_vegetation_prj = "veg_massifs_mrs/veg_massifs_mrs_true.prj"
 
 # --- Chargement des données ---
-gdf_massifs = load_data_massifs_github(path_massifs)
-gdf_vegetation = load_data_vegetation_github(path_vegetation)
+gdf_massifs = load_data_massifs_github(path_massifs_shp, path_massifs_dbf, path_massifs_shx, path_massifs_prj)
+gdf_vegetation = load_data_vegetation_github(path_vegetation_shp, path_vegetation_dbf, path_vegetation_shx, path_vegetation_prj)
 
 # --- Vérification du chargement des données ---
 if gdf_massifs is None or gdf_vegetation is None:
