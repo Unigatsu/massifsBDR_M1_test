@@ -96,7 +96,7 @@ with col_info:
         st.write(f"**Massif sélectionné:** {selected_massif_nom if selected_massif_nom else selected_massif_id}")
         vegetation_massif = gdf_vegetation[gdf_vegetation[colonne_lien_vegetation_massif] == selected_massif_id]
 
-       if not vegetation_massif.empty:
+        if not vegetation_massif.empty:
             types_vegetation = vegetation_massif[colonne_type_vegetation].unique()
             if len(types_vegetation) > 0:
                 st.write("**Types de végétation présents :**")
@@ -104,7 +104,7 @@ with col_info:
                     st.write(f"- {type_veg}")
             else:
                 st.write("Aucun type de végétation trouvé pour ce massif.")
-        else:  
+        else:
             st.info("Aucune donnée de végétation trouvée pour ce massif.")
     else:
         st.info("Cliquez sur un massif de la carte pour afficher les informations sur la végétation.")
