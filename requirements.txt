@@ -3,5 +3,6 @@ geopandas
 pandas
 folium
 streamlit-folium
+matplotlib
 fiona
 random
