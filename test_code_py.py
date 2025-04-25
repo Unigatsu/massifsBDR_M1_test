@@ -6,7 +6,7 @@ from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
 
 st.set_page_config(layout="wide")
-st.title("Dashboard de la Végétation de 8 massifs des Bouches-du-Rhône réalisé par Augustin DUPUIS")
+st.title("Dashboard de la végétation des massifs des Bouches-du-Rhône réalisé par Augustin DUPUIS")
 st.markdown("En raison de la limitation dans le poids des fichiers hébergés sur GitHub, seuls les massifs de nord Etoile-Col. Gardanne, Sud Etoile et Garlaban, Sud Régagnas, Nord Régagnas, Sud Sainte-Baume, Nord Sainte-Baume, Calanques Grand-Caunet et Côte Bleue ont pu être intégrés. Avec un meilleur hébergeur de fichier, cette application peut parfaitement être appliquée à l'entièreté des massifs du département du 13.")
 
 
