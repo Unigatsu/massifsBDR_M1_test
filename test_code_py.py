@@ -5,12 +5,12 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
---- Configuration de la page Streamlit ---
+#--- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
 st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
 st.markdown("Visualisation interactive de la végétation à partir de shapefiles locaux.")
 
---- Sidebar pour les instructions ---
+## Sidebar pour les instructions ---
 with st.sidebar:
     st.header("Options d'affichage")
     option_affichage = st.radio("Afficher :", ("Massifs", "Végétation"))
@@ -23,7 +23,7 @@ nom_maf (nom du massif)
 NATURE (type de végétation)
 Cliquez sur un massif pour voir les types de végétation associés.""")
 
---- Chargement des données (sans dbf/shx/prj explicites) ---
+#--- Chargement des données (sans dbf/shx/prj explicites) ---
 @st.cache_data
 
 def load_data():
@@ -35,13 +35,13 @@ def load_data():
         st.error(f"Erreur lors du chargement des données : {e}")
         return None, None
 
---- Données ---
+#--- Données ---
 gdf_massifs, gdf_vegetation = load_data()
 
 if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
---- Affichage carte et informations ---
+#--- Affichage carte et informations ---
 col_map, col_info = st.columns([1, 1])
 
 with col_map:
