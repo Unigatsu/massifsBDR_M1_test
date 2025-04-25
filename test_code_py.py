@@ -6,7 +6,7 @@ from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
 
 st.set_page_config(layout="wide")
-st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
+st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône réalisé par Augustin DUPUIS")
 
 # --- Sidebar ---
 with st.sidebar:
