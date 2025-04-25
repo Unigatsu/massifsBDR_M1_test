@@ -3,20 +3,25 @@ import geopandas as gpd
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
-import matplotlib.pyplot as plt
-from shapely.geometry import Polygon
+import matplotlib.colors as mcolors
+import random
 
-# Configuration de la page
+# --- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
 st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
+st.markdown("Visualisation interactive de la végétation à partir de données Shapefile.")
 
-# Sidebar
+# --- Sidebar pour les instructions ---
 with st.sidebar:
-    st.header("Options")
-    st.markdown("Cliquez sur un massif pour voir sa répartition de végétation.")
+    st.header("Options d'affichage")
+    option_affichage = st.radio(
+        "Afficher :",
+        ("Massifs", "Végétation")
+    )
 
-# Chargement des données
+# --- Chargement des fichiers shapefiles ---
 @st.cache_data
+
 def load_data():
     gdf_massifs = gpd.read_file("massifs_13_mrs/massifs_13_mrs.shp")
     gdf_vegetation = gpd.read_file("veg_massifs_mrs/veg_massifs_mrs.shp")
@@ -24,79 +29,81 @@ def load_data():
 
 gdf_massifs, gdf_vegetation = load_data()
 
-# Centrage carte
-m = folium.Map(location=[43.5, 5.5], zoom_start=9)
+# --- Colonnes de référence ---
+colonne_id_massif = 'nom_maf'
+colonne_nom_massif = 'nom_maf'
+colonne_type_vegetation = 'NATURE'
+colonne_surface = 'surface_ve'
 
-# Couleurs végétation
-couleurs_vegetation = {
-    "Forêt": "#228B22",
-    "Garrigue": "#ADFF2F",
-    "Maquis": "#7FFF00",
-    "Pelouse": "#32CD32",
-    "Autre": "#808080"
-}
+# --- Création des couleurs pour la légende de végétation ---
+types_vegetation = gdf_vegetation[colonne_type_vegetation].unique()
+color_list = list(mcolors.CSS4_COLORS.values())
+random.shuffle(color_list)
+couleurs_vegetation = {veg_type: color_list[i % len(color_list)] for i, veg_type in enumerate(types_vegetation)}
 
-# Ajout des massifs à la carte
-def style_function(feature):
-    return {
-        'fillColor': 'lightblue',
-        'color': 'black',
-        'weight': 1,
-        'fillOpacity': 0.6
-    }
+# --- Carte interactive ---
+col_map, col_info = st.columns([2, 1])
 
-# Stocker le massif sélectionné
-selected_nom_massif = None
+with col_map:
+    m = folium.Map(location=[43.5, 5.5], zoom_start=9)
 
-# Ajout des massifs avec clic
-def on_click_handler(feature, **kwargs):
-    global selected_nom_massif
-    selected_nom_massif = feature["properties"]["nom_maf"]
+    if option_affichage == "Massifs":
+        folium.GeoJson(
+            gdf_massifs,
+            name="Massifs",
+            style_function=lambda x: {
+                'fillColor': 'lightblue',
+                'color': 'black',
+                'weight': 1,
+                'fillOpacity': 0.5
+            },
+            tooltip=folium.GeoJsonTooltip(fields=[colonne_nom_massif], aliases=["Massif :"])
+        ).add_to(m)
 
-for _, row in gdf_massifs.iterrows():
-    geo_json = folium.GeoJson(
-        data=row["geometry"],
-        style_function=style_function,
-        tooltip=folium.Tooltip(row["nom_maf"]),
-    )
-    geo_json.add_to(m)
+    elif option_affichage == "Végétation":
+        def style_function(feature):
+            veg = feature['properties'][colonne_type_vegetation]
+            return {
+                'fillColor': couleurs_vegetation.get(veg, 'gray'),
+                'color': 'black',
+                'weight': 0.5,
+                'fillOpacity': 0.6
+            }
 
-# Affichage carte
-st.subheader("Carte interactive")
-map_data = st_folium(m, height=500, width="100%")
+        folium.GeoJson(
+            gdf_vegetation,
+            name="Végétation",
+            style_function=style_function,
+            tooltip=folium.GeoJsonTooltip(fields=[colonne_type_vegetation], aliases=["Type :"])
+        ).add_to(m)
 
-# Vérification de sélection par carte
-selected_nom_massif = None
-if map_data and map_data.get("last_active_drawing"):
-    clicked_geometry = map_data["last_active_drawing"]["geometry"]
-    point = gpd.GeoSeries.from_geojson(clicked_geometry).centroid[0]
-    for _, row in gdf_massifs.iterrows():
-        if row.geometry.contains(point):
-            selected_nom_massif = row["nom_maf"]
-            break
+        # Légende personnalisée
+        legend_html = """
+        <div style='position: fixed; bottom: 50px; left: 50px; width: 250px; z-index:9999; font-size:14px;
+                    background-color:white; border:2px solid grey; padding: 10px;'>
+        <b>Légende Végétation</b><br>
+        """
+        for veg_type, color in couleurs_vegetation.items():
+            legend_html += f"<i style='background:{color};width:12px;height:12px;float:left;margin-right:8px;'></i>{veg_type}<br>"
+        legend_html += "</div>"
+        m.get_root().html.add_child(folium.Element(legend_html))
 
-# Affichage des infos du massif
-if selected_nom_massif:
-    st.subheader(f"Répartition de la végétation dans le massif : {selected_nom_massif}")
-    gdf_sel = gdf_vegetation[gdf_vegetation["nom_maf"] == selected_nom_massif]
+    st_folium(m, height=600, width='100%')
 
-    if not gdf_sel.empty:
-        df_pie = gdf_sel.groupby("NATURE")["surface_ve"].sum().reset_index()
-        df_pie["%"] = df_pie["surface_ve"] / df_pie["surface_ve"].sum() * 100
+with col_info:
+    st.subheader("Détails du massif")
+    nom_massif_selectionne = st.selectbox("Choisissez un massif :", gdf_massifs[colonne_nom_massif].unique())
+    st.write(f"Massif sélectionné : **{nom_massif_selectionne}**")
+    
+    veg_massif = gdf_vegetation[gdf_vegetation[colonne_nom_massif] == nom_massif_selectionne]
+    if not veg_massif.empty:
+        surface_totale = veg_massif[colonne_surface].sum()
+        repartition = veg_massif.groupby(colonne_type_vegetation)[colonne_surface].sum()
+        repartition_percent = repartition / surface_totale * 100
+        st.write("### Répartition de la végétation (%)")
+        st.dataframe(repartition_percent.round(2).reset_index().rename(columns={colonne_surface: "% Surface"}))
 
-        # Camembert
-        fig, ax = plt.subplots()
-        wedges, texts, autotexts = ax.pie(
-            df_pie["%"],
-            labels=df_pie["NATURE"],
-            autopct="%1.1f%%",
-            colors=[couleurs_vegetation.get(v, "#CCCCCC") for v in df_pie["NATURE"]],
-            startangle=90
-        )
-        ax.axis("equal")
-        st.pyplot(fig)
+        # Graphique camembert
+        st.pyplot(repartition_percent.plot.pie(y=colonne_surface, autopct='%1.1f%%', figsize=(5, 5), legend=False).get_figure())
     else:
         st.warning("Aucune donnée de végétation pour ce massif.")
-else:
-    st.info("Cliquez sur un massif pour afficher les informations.")
-
