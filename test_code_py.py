@@ -78,3 +78,29 @@ with col_info:
             st.info("Sélectionnez un massif pour afficher ses informations.")
     else:
         st.info("Cliquez sur un élément de la carte pour voir les détails.")
+
+# --- Menu déroulant des types de végétation ---
+st.subheader("Analyse par type de végétation")
+
+# Liste des types de végétation uniques
+types_vegetation = gdf_vegetation[colonne_type_vegetation].dropna().unique()
+type_selectionne = st.selectbox("Choisissez un type de végétation :", sorted(types_vegetation))
+
+# Filtrer les données selon le type sélectionné
+veg_type = gdf_vegetation[gdf_vegetation[colonne_type_vegetation] == type_selectionne]
+
+if not veg_type.empty:
+    # Calcul de la surface par massif pour ce type
+    surface_par_massif = veg_type.groupby(colonne_id_massif)[colonne_surface].sum()
+
+    # Surface totale de chaque massif
+    surface_totale_massif = gdf_vegetation.groupby(colonne_id_massif)[colonne_surface].sum()
+
+    # Calcul du pourcentage
+    df_percent = (surface_par_massif / surface_totale_massif * 100).reset_index()
+    df_percent.columns = ["Massif", f"% de {type_selectionne}"]
+
+    st.dataframe(df_percent.style.format({f"% de {type_selectionne}": "{:.2f}%"}))
+else:
+    st.info("Aucune donnée disponible pour ce type de végétation.")
+
