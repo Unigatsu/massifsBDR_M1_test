@@ -5,25 +5,25 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 
-#--- Configuration de la page Streamlit ---
+# --- Configuration de la page Streamlit ---
 st.set_page_config(layout="wide")
 st.title("Dashboard de la Végétation des Massifs des Bouches-du-Rhône")
 st.markdown("Visualisation interactive de la végétation à partir de shapefiles locaux.")
 
-## Sidebar pour les instructions ---
+# --- Sidebar pour les instructions ---
 with st.sidebar:
     st.header("Options d'affichage")
     option_affichage = st.radio("Afficher :", ("Massifs", "Végétation"))
     st.header("Instructions")
     st.markdown("""
-    
-Les fichiers shapefiles doivent être présents dans les bons dossiers.
-Les fichiers doivent contenir les colonnes suivantes :
-nom_maf (nom du massif)
-NATURE (type de végétation)
-Cliquez sur un massif pour voir les types de végétation associés.""")
+    1. Les fichiers shapefiles doivent être présents dans les bons dossiers.
+    2. Les fichiers doivent contenir les colonnes suivantes :
+       - `nom_maf` (nom du massif)
+       - `NATURE` (type de végétation)
+    3. Cliquez sur un massif pour voir les types de végétation associés.
+    """)
 
-#--- Chargement des données (sans dbf/shx/prj explicites) ---
+# --- Chargement des données (sans dbf/shx/prj explicites) ---
 @st.cache_data
 
 def load_data():
@@ -35,20 +35,20 @@ def load_data():
         st.error(f"Erreur lors du chargement des données : {e}")
         return None, None
 
-#--- Données ---
+# --- Données ---
 gdf_massifs, gdf_vegetation = load_data()
 
 if gdf_massifs is None or gdf_vegetation is None:
     st.stop()
 
-#--- Affichage carte et informations ---
+# --- Affichage carte et informations ---
 col_map, col_info = st.columns([1, 1])
 
 with col_map:
     st.subheader("Carte Interactive")
     m = folium.Map(location=[43.5, 5.5], zoom_start=9)
 
-    def on_click_feature(feature, kwargs):
+    def on_click_feature(feature, **kwargs):
         return {"nom_maf": feature["properties"].get("nom_maf", None), "NATURE": feature["properties"].get("NATURE", None)}
 
     if option_affichage == "Massifs":
@@ -78,11 +78,11 @@ with col_info:
         props = st_data["last_active_drawing"]["properties"]
         if option_affichage == "Massifs":
             nom_massif = props.get("nom_maf", "Inconnu")
-            st.write(f"Massif sélectionné : {nom_massif}")
+            st.write(f"**Massif sélectionné :** {nom_massif}")
             veg_data = gdf_vegetation[gdf_vegetation["nom_maf"] == nom_massif]
             types = veg_data["NATURE"].unique()
             if len(types) > 0:
-                st.write("Types de végétation :")
+                st.write("**Types de végétation :**")
                 for t in types:
                     st.write(f"- {t}")
             else:
@@ -90,6 +90,7 @@ with col_info:
 
         elif option_affichage == "Végétation":
             nature = props.get("NATURE", "Inconnu")
-            st.write(f"Type de végétation sélectionné :** {nature}")
+            st.write(f"**Type de végétation sélectionné :** {nature}")
     else:
         st.info("Cliquez sur un élément de la carte pour voir les détails.")
+
