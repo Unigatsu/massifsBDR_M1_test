@@ -4,4 +4,4 @@ pandas
 folium
 streamlit-folium
 matplotlib
-shapely
+fiona
